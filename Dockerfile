@@ -7,14 +7,13 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-
 COPY requirements.txt . 
 
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . . 
 
-EXPOSE 80 
+EXPOSE 80
 
-CMD ["gunicorn", "app.main:app", "-b", "0.0.0.0:80", "--reload"]
-
+# Comando para iniciar o Gunicorn, usando a variável de ambiente $PORT
+CMD ["gunicorn", "app.main:app", "-b", "0.0.0.0:${PORT:-80}"]

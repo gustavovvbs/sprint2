@@ -7,6 +7,8 @@ from app.models.user import UserModel
 from app.schemas.auth import UserCreateSchema
 from pydantic import ValidationError
 
+
+secret_key_mock = "f19a51f6df5b7fa6e0c01e29f146343e596a7899ae3a8f5bd241b0fc6a26abd7"
 @pytest.fixture
 def mock_db():
     return Mock()
@@ -96,10 +98,11 @@ def test_login_invalid_password(mock_db, auth_service):
 def test_create_token(auth_service):
     test_data = {"sub": "user_id"}
     expires = timedelta(days=1)
-
+    auth_service.SECRET_KEY = secret_key_mock
+    
     token = auth_service._create_token(test_data, expires)
 
-    payload = jwt.decode(token, auth_service.SECRET_KEY, algorithms=["HS256"])
+    payload = jwt.decode(token, secret_key_mock, algorithms=["HS256"])
     assert payload["sub"] == "user_id"
     assert "exp" in payload
 
@@ -118,7 +121,7 @@ def test_verify_invalid_token(auth_service):
 
 def test_token_expiration(auth_service):
     past_data = {"sub": "user_id", "exp": datetime.utcnow() - timedelta(days=1)}
-    expired_token = jwt.encode(past_data, auth_service.SECRET_KEY, algorithm="HS256")
+    expired_token = jwt.encode(past_data, secret_key_mock, algorithm="HS256")
 
     with pytest.raises(ValueError, match="Invalid token"):
         auth_service.verify_token(expired_token)

@@ -1,4 +1,5 @@
 from app.db.mongo_client import get_db 
+from bson import ObjectId
 
 
 class UserService:
@@ -7,7 +8,7 @@ class UserService:
 
     def get_user_by_id(self, user_id):
         try:
-            user = self.db.users.find_one({"_id": user_id})
+            user = self.db.users.find_one({"_id": ObjectId(user_id)})
             if not user:
                 raise ValueError("User not found")
             
@@ -29,7 +30,7 @@ class UserService:
         if update_data.keys() - {"username", "email"}:
             raise ValueError("Invalid update data")
         
-        if not self.db.users.find_one({"_id": user_id}):
+        if not self.db.users.find_one({"_id": ObjectId(user_id)}):
             raise ValueError("User not found")
 
         result = self.db.users.update_one(
@@ -43,7 +44,7 @@ class UserService:
         return {"message": "user updated successfully"}
 
     def delete_user(self, user_id):
-        result = self.db.users.delete_one({"_id": user_id})
+        result = self.db.users.delete_one({"_id": ObjectId(user_id)})
         if result.deleted_count == 0:
             raise ValueError("User not found")
         return {"message": "user deleted successfully"}

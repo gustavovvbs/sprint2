@@ -27,7 +27,7 @@ def test_register_new_user(mock_db, auth_service):
     mock_insert_result = Mock()
     mock_insert_result.inserted_id = "mock_user_id"
     mock_db.insert_one.return_value = mock_insert_result
-    auth_service.SECRET_KEY = secret
+    auth_service.SECRET_KEY = secret_key_mock
 
     result = auth_service.register(user_data)
 
@@ -60,10 +60,10 @@ def test_register_invalid_data(mock_db, auth_service):
     
 
 def test_login_successful(mock_db, auth_service):
+    auth_service.SECRET_KEY = secret_key_mock
     email = "login@example.com"
     password = "correctpassword"
     hashed_password = auth_service._create_token({"sub": "user_id"}, timedelta(days=1))
-    auth_service.SECRET_KEY = secret_key_mock
 
     mock_user = {
         "_id": "user_id",
@@ -86,9 +86,9 @@ def test_login_user_not_found(mock_db, auth_service):
         auth_service.login("nonexistent@example.com", "anypassword")
 
 def test_login_invalid_password(mock_db, auth_service):
+    auth_service.SECRET_KEY = secret_key_mock
     email = "login@example.com"
     password = "wrongpassword"
-    auth_service.SECRET_KEY = secret_key_mock
 
     mock_user = {
         "_id": "user_id",
@@ -102,9 +102,9 @@ def test_login_invalid_password(mock_db, auth_service):
             auth_service.login(email, password)
 
 def test_create_token(auth_service):
+    auth_service.SECRET_KEY = secret_key_mock
     test_data = {"sub": "user_id"}
     expires = timedelta(days=1)
-    auth_service.SECRET_KEY = secret_key_mock
     
     token = auth_service._create_token(test_data, expires)
 
@@ -113,24 +113,24 @@ def test_create_token(auth_service):
     assert "exp" in payload
 
 def test_verify_token(auth_service):
+    auth_service.SECRET_KEY = secret_key_mock
     test_data = {"sub": "user_id"}
     token = auth_service._create_token(test_data, timedelta(days=1))
-    auth_service.SECRET_KEY = secret_key_mock
 
     user_id = auth_service.verify_token(token)
     assert user_id == "user_id"
 
 def test_verify_invalid_token(auth_service):
-    invalid_token = "invalid.token.here"
     auth_service.SECRET_KEY = secret_key_mock
+    invalid_token = "invalid.token.here"
 
     with pytest.raises(ValueError, match="Invalid token"):
         auth_service.verify_token(invalid_token)
 
 def test_token_expiration(auth_service):
+    auth_service.SECRET_KEY = secret_key_mock
     past_data = {"sub": "user_id", "exp": datetime.utcnow() - timedelta(days=1)}
     expired_token = jwt.encode(past_data, secret_key_mock, algorithm="HS256")
-    auth_service.SECRET_KEY = secret_key_mock
 
     with pytest.raises(ValueError, match="Invalid token"):
         auth_service.verify_token(expired_token)

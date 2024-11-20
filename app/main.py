@@ -7,7 +7,7 @@ app = Flask(__name__)
 CORS(app)
 app.register_blueprint(auth_bp, url_prefix = '/auth')
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.ERROR)
 
 @app.route('/')
 def index():

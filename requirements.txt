@@ -25,3 +25,4 @@ pyjwt
 python-jose
 psycopg2
 passlib
+flask_cors

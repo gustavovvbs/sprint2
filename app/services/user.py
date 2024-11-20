@@ -1,7 +1,6 @@
 from app.db.mongo_client import get_db 
 from bson import ObjectId
 
-
 class UserService:
     def __init__(self, db):
         self.db = db 

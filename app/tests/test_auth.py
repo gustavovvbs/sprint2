@@ -23,17 +23,17 @@ def test_register_new_user(mock_db, auth_service):
         email="test@example.com",
         password="strongpassword123"
     )
-    mock_db.find_one.return_value = None
+    mock_db.users.find_one.return_value = None
     mock_insert_result = Mock()
     mock_insert_result.inserted_id = "mock_user_id"
-    mock_db.insert_one.return_value = mock_insert_result
+    mock_db.users.insert_one.return_value = mock_insert_result
     auth_service.SECRET_KEY = secret_key_mock
 
     result = auth_service.register(user_data)
 
     assert result == {"user_id": "mock_user_id"}
-    mock_db.find_one.assert_called_once_with({"email": user_data.email})
-    mock_db.insert_one.assert_called_once()
+    mock_db.users.find_one.assert_called_once_with({"email": user_data.email})
+    mock_db.users.insert_one.assert_called_once()
 
 def test_register_existing_user(mock_db, auth_service):
     auth_service.SECRET_KEY = secret_key_mock
@@ -42,7 +42,7 @@ def test_register_existing_user(mock_db, auth_service):
         email="existing@example.com",
         password="strongpassword123"
     )
-    mock_db.find_one.return_value = {"email": user_data.email}
+    mock_db.users.find_one.return_value = {"email": user_data.email}
 
     with pytest.raises(ValueError, match="User with this email already exists"):
         auth_service.register(user_data)
@@ -75,7 +75,7 @@ def test_login_successful(mock_db, auth_service):
         "email": email,
         "hashed_password": hashed_password
     }
-    mock_db.find_one.return_value = mock_user
+    mock_db.users.find_one.return_value = mock_user
 
     with patch("app.services.auth.verify_password", return_value=True):
         result = auth_service.login(user_data)
@@ -84,7 +84,7 @@ def test_login_successful(mock_db, auth_service):
         assert result["token_type"] == "bearer"
 
 def test_login_user_not_found(mock_db, auth_service):
-    mock_db.find_one.return_value = None
+    mock_db.users.find_one.return_value = None
     auth_service.SECRET_KEY = secret_key_mock
     user_data = {
         "email": "nonexistent@example.com",
@@ -109,7 +109,7 @@ def test_login_invalid_password(mock_db, auth_service):
         "email": email,
         "hashed_password": "hashedpassword"
     }
-    mock_db.find_one.return_value = mock_user
+    mock_db.users.find_one.return_value = mock_user
 
     with patch("app.services.auth.verify_password", return_value=False):
         with pytest.raises(ValueError, match="Invalid password"):

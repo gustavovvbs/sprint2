@@ -15,7 +15,7 @@ class AuthService:
         self.SECRET_KEY = os.getenv("SECRET_KEY")
 
     def register(self, user_data: UserCreateSchema):
-        existing_user = self.db.find_one({"email": user_data.email})
+        existing_user = self.db.users.find_one({"email": user_data.email})
         if existing_user:
             raise ValueError("User with this email already exists")
 
@@ -26,11 +26,11 @@ class AuthService:
             hashed_password=hashed_password,
         )
 
-        result = self.db.insert_one(user.model_dump())
+        result = self.db.users.insert_one(user.model_dump())
         return {"user_id": str(result.inserted_id)}
 
     def login(self, user_data:UserLoginSchema):
-        user = self.db.find_one({"email": user_data["email"]})
+        user = self.db.users.find_one({"email": user_data["email"]})
         if not user:
             raise ValueError("User not found")
 

@@ -65,6 +65,11 @@ def test_login_successful(mock_db, auth_service):
     password = "correctpassword"
     hashed_password = auth_service._create_token({"sub": "user_id"}, timedelta(days=1))
 
+    user_data = {
+        "email": email,
+        "password": password
+    }
+
     mock_user = {
         "_id": "user_id",
         "email": email,
@@ -73,7 +78,7 @@ def test_login_successful(mock_db, auth_service):
     mock_db.find_one.return_value = mock_user
 
     with patch("app.services.auth.verify_password", return_value=True):
-        result = auth_service.login(email, password)
+        result = auth_service.login(user_data)
 
         assert "access_token" in result
         assert result["token_type"] == "bearer"
@@ -81,14 +86,23 @@ def test_login_successful(mock_db, auth_service):
 def test_login_user_not_found(mock_db, auth_service):
     mock_db.find_one.return_value = None
     auth_service.SECRET_KEY = secret_key_mock
+    user_data = {
+        "email": "nonexistent@example.com",
+        "password": "anypassword"
+    }
 
     with pytest.raises(ValueError, match="User not found"):
-        auth_service.login("nonexistent@example.com", "anypassword")
+        auth_service.login(user_data)
 
 def test_login_invalid_password(mock_db, auth_service):
     auth_service.SECRET_KEY = secret_key_mock
     email = "login@example.com"
     password = "wrongpassword"
+
+    user_data = {
+        "email": email,
+        "password": password
+    }
 
     mock_user = {
         "_id": "user_id",
@@ -99,7 +113,7 @@ def test_login_invalid_password(mock_db, auth_service):
 
     with patch("app.services.auth.verify_password", return_value=False):
         with pytest.raises(ValueError, match="Invalid password"):
-            auth_service.login(email, password)
+            auth_service.login(user_data)
 
 def test_create_token(auth_service):
     auth_service.SECRET_KEY = secret_key_mock

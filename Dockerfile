@@ -15,5 +15,4 @@ COPY . .
 
 EXPOSE 80
 
-# Comando para iniciar o Gunicorn, usando a variável de ambiente $PORT
-CMD exec gunicorn app.main:app -b 0.0.0.0:${PORT}
+CMD exec gunicorn app.main:app -b 0.0.0.0:80

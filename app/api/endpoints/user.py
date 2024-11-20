@@ -1,6 +1,8 @@
-from app.models.user import UserModel 
+from app.models.user import UserModel
+from app.schemas.user import UpdateUser
 from app.services.user import UserService 
 from app.db.mongo_client import get_db 
+from app.core.validation_middleware import validate_json
 from flask import Blueprint, request, jsonify, current_app
 
 user_bp = Blueprint('user', __name__)
@@ -17,11 +19,12 @@ def get_user_endpoint(user_id):
         return jsonify({'error': 'user not found'}), 404
 
 @user_bp.route('/<user_id>', methods = ['PUT'])
-def update_user_endpoint(user_id):
+@validate_json(UpdateUser)
+def update_user_endpoint(data, user_id):
     try:
         current_app.logger.info('Update user endpoint called')
         user_service = UserService(get_db())
-        update_data = request.json 
+        update_data = data.model_dump()
         result = user_service.update_user(user_id, update_data)
         return jsonify(result), 200
     except ValueError as e:

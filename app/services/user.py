@@ -18,9 +18,11 @@ class UserService:
         return user
 
     def update_user(self, user_id, update_data):
-        #subtrai os dois sets, se sobrar algo, eh invalido
         if update_data.keys() - {"username", "email"}:
             raise ValueError("Invalid update data")
+        
+        if not self.db.users.find_one({"_id": user_id}):
+            raise ValueError("User not found")
 
         result = self.db.users.update_one(
             {"_id": user_id},

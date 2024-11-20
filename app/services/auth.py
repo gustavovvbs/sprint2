@@ -1,12 +1,10 @@
 from datetime import datetime, timedelta
-from app.db.mongo_client import get_db
+import os
 from app.models.user import UserModel
-from app.schemas.auth import UserCreateSchema
+from app.schemas.auth import UserCreateSchema, UserLoginSchema
 from app.core.security import hash_password, verify_password
 from jose import jwt, JWTError
-import os
 from dotenv import load_dotenv
-from pydantic import ValidationError
 
 load_dotenv()
 
@@ -31,12 +29,12 @@ class AuthService:
         result = self.db.insert_one(user.model_dump())
         return {"user_id": str(result.inserted_id)}
 
-    def login(self, email: str, password: str):
-        user = self.db.find_one({"email": email})
+    def login(self, user_data:UserLoginSchema):
+        user = self.db.find_one({"email": user_data["email"]})
         if not user:
             raise ValueError("User not found")
 
-        if not verify_password(password, user["hashed_password"]):
+        if not verify_password(user_data['password'], user["hashed_password"]):
             raise ValueError("Invalid password")
 
         access_token = self._create_token(
@@ -59,5 +57,5 @@ class AuthService:
             if user_id is None:
                 raise ValueError("Invalid token")
             return user_id
-        except JWTError:
-            raise ValueError("Invalid token")
+        except JWTError as e:
+            raise ValueError("Invalid token") from e

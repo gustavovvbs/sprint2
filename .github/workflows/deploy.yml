@@ -19,7 +19,7 @@ jobs:
 
       - name: build docker image 
         run: |
-          docker build -t registry.heroku.com/${{ secrets.HEROKU_APP_NAME }}/web .
+          docker build --no-cache -t registry.heroku.com/${{ secrets.HEROKU_APP_NAME }}/web .
 
       - name: push docker image to heroku 
         run: |

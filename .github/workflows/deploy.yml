@@ -28,7 +28,7 @@ jobs:
 
       - name: run tests 
         run: |
-          pytest 
+          pytest -vv
         continue-on-error: false
 
       - name: login to heroku

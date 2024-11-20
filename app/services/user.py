@@ -6,10 +6,18 @@ class UserService:
         self.db = db 
 
     def get_user_by_id(self, user_id):
-        user = self.db.users.find_one({"_id": user_id})
-        if not user:
-            raise ValueError("User not found")
-        return user
+        try:
+            user = self.db.users.find_one({"_id": user_id})
+            if not user:
+                raise ValueError("User not found")
+            
+            return {
+                "_id": str(user["_id"]),
+                "username": user["username"],
+                "email": user["email"],
+            }
+        except Exception as e:
+            raise ValueError(f"error fetching user: {str(e)}")
     
     def get_user_by_email(self, email):
         user = self.db.users.find_one({"email": email})

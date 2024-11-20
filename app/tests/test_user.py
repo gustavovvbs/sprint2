@@ -12,9 +12,9 @@ def user_service(mock_db):
     return UserService(mock_db)
 
 def test_get_user_by_id(user_service, mock_db):
-    mock_db.users.find_one.return_value = {"_id": "123", "username": "testuser"}
+    mock_db.users.find_one.return_value = {"_id": "123", "username": "testuser", "email": "test@example.com"}
     user = user_service.get_user_by_id("123")
-    assert user == {"_id": "123", "username": "testuser"}
+    assert user == {"_id": "123", "username": "testuser", "email": "test@example.com"}
 
 def test_get_user_by_id_not_found(user_service, mock_db):
     mock_db.users.find_one.return_value = None

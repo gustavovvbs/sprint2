@@ -1,4 +1,4 @@
-name: Deploy 
+name: Deploy
 
 on:
   push:
@@ -7,24 +7,27 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest 
+    runs-on: ubuntu-latest
+    env:
+      HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
 
     steps:
-      - name: checkout code 
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: login to heroku container registry
+      - name: Login to Heroku container registry
         run: |
-          echo ${{ secrets.HEROKU_API_KEY }} | docker login --username=_ --password-stdin registry.heroku.com
+          echo $HEROKU_API_KEY | docker login --username=_ --password-stdin registry.heroku.com
 
-      - name: build docker image 
+      - name: Build Docker image
         run: |
-          docker build --no-cache -t registry.heroku.com/${{ secrets.HEROKU_APP_NAME }}/web .
+          docker build --no-cache -t registry.heroku.com/$HEROKU_APP_NAME/web .
 
-      - name: push docker image to heroku 
+      - name: Push Docker image to Heroku
         run: |
-          docker push registry.heroku.com/${{ secrets.HEROKU_APP_NAME }}/web
+          docker push registry.heroku.com/$HEROKU_APP_NAME/web
 
-      - name: release to heroku 
+      - name: Release to Heroku
         run: |
-          heroku container:release web -a ${{ secrets.HEROKU_APP_NAME }}
+          heroku container:release web -a $HEROKU_APP_NAME

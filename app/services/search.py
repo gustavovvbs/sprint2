@@ -17,10 +17,12 @@ class SearchService:
         for study in api_response.get("studies", []):
             filtered_study = {}
             
-            identification = study.get("derivedSection", {}).get("identificationModule", {})
+            # Título
+            identification = study.get("protocolSection", {}).get("identificationModule", {})
             title = identification.get("briefTitle") or identification.get("officialTitle") or "N/A"
             filtered_study["Title"] = title
             
+            # Descrição
             description = study.get("protocolSection", {}).get("descriptionModule", {})
             brief_summary = description.get("briefSummary", "")
             detailed_description = description.get("detailedDescription", "")
@@ -34,15 +36,18 @@ class SearchService:
                 full_description = "N/A"
             filtered_study["Description"] = full_description.strip()
             
+            # Intervenção
             interventions_module = study.get("protocolSection", {}).get("armsInterventionsModule", {})
             interventions = interventions_module.get("interventions", [])
             intervention_names = [interv.get("name", "N/A") for interv in interventions]
             filtered_study["Intervention"] = intervention_names if intervention_names else ["N/A"]
             
+            # Pessoas envolvidas
             officials = study.get("protocolSection", {}).get("contactsLocationsModule", {}).get("overallOfficials", [])
             people_involved = [official.get("name", "N/A") for official in officials]
             filtered_study["People Involved"] = people_involved if people_involved else ["N/A"]
             
+            # Localização
             locations = study.get("protocolSection", {}).get("contactsLocationsModule", {}).get("locations", [])
             location_info = []
             for loc in locations:
@@ -54,10 +59,12 @@ class SearchService:
                 location_info.append(location_str)
             filtered_study["Location"] = location_info if location_info else ["N/A"]
             
+            # Condições
             conditions_module = study.get("protocolSection", {}).get("conditionsModule", {})
             conditions = conditions_module.get("conditions", [])
             filtered_study["Conditions"] = conditions if conditions else ["N/A"]
             
+            # Idade e restrições
             eligibility_module = study.get("protocolSection", {}).get("eligibilityModule", {})
             min_age = eligibility_module.get("minimumAge", "N/A")
             max_age = eligibility_module.get("maximumAge", "N/A")
@@ -65,8 +72,9 @@ class SearchService:
             filtered_study["Age"] = age
             
             restrictions = eligibility_module.get("eligibilityCriteria", "N/A")
-            filtered_study["Restrictions"] = restrictions
+            filtered_study["Restrictions"] = restrictions.strip()
             
+            # Se tem resultados publicados
             has_results = study.get("hasResults", False)
             filtered_study["Has Results Published"] = has_results
             

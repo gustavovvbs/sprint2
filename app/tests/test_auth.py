@@ -29,7 +29,7 @@ def test_register_new_user(mock_db, auth_service):
     mock_db.users.insert_one.return_value = mock_insert_result
     auth_service.SECRET_KEY = secret_key_mock
 
-    result = auth_service.register(user_data)
+    result = auth_service.register(user_data.model_dump())
 
     assert result == {"user_id": "mock_user_id"}
     mock_db.users.find_one.assert_called_once_with({"email": user_data.email})
@@ -45,7 +45,7 @@ def test_register_existing_user(mock_db, auth_service):
     mock_db.users.find_one.return_value = {"email": user_data.email}
 
     with pytest.raises(ValueError, match="User with this email already exists"):
-        auth_service.register(user_data)
+        auth_service.register(user_data.model_dump())
 
 def test_register_invalid_data(mock_db, auth_service):
     auth_service.SECRET_KEY = secret_key_mock

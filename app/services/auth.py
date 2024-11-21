@@ -14,12 +14,12 @@ class AuthService:
         self.ACCESS_TOKEN_EXPIRE_DAYS = 7
         self.SECRET_KEY = os.getenv("SECRET_KEY")
 
-    def register(self, user_data: UserCreateSchema):
+    def register(self, user_data: dict):
         existing_user = self.db.users.find_one({"email": user_data["email"]})
         if existing_user:
             raise ValueError("User with this email already exists")
 
-        hashed_password = hash_password(user_data.password)
+        hashed_password = hash_password(user_data["password"])
         user = UserModel(
             username=user_data["username"],
             email=user_data["email"],
@@ -29,7 +29,7 @@ class AuthService:
         result = self.db.users.insert_one(user.model_dump())
         return {"user_id": str(result.inserted_id)}
 
-    def login(self, user_data:UserLoginSchema):
+    def login(self, user_data: dict):
         user = self.db.users.find_one({"email": user_data["email"]})
         if not user:
             raise ValueError("User not found")

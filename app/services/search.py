@@ -45,7 +45,6 @@ class SearchService:
 
             officials = study.get("protocolSection", {}).get("contactsLocationsModule", {}).get("centralContacts", [])
 
-
             filtered_study["contacts"] = officials if officials else ["N/A"]
             
             locations = study.get("protocolSection", {}).get("contactsLocationsModule", {}).get("locations", [])
@@ -128,6 +127,9 @@ class SearchService:
         if response.status_code == 200:
             api_response = response.json()
             filtered_response = SearchService.filter_studies(api_response)
+            if search_data.location is None:
+                return filtered_response
+                
             filter_city = search_data.location.split(",")[0]
             filtered_per_location = []
             for study in filtered_response:

@@ -27,3 +27,5 @@ psycopg2
 passlib
 flask_cors
 bcrypt
+google
+google-cloud-translate

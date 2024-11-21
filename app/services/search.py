@@ -1,111 +1,97 @@
-from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 import requests
 from flask import current_app
 from app.schemas.search import PacienteSearch
+from app.services.translate import TranslateService
 
 class SearchService:
     BASE_URL = "https://clinicaltrials.gov/api/v2/studies"
 
     def __init__(self):
-        pass
+        self.translate_service = TranslateService()
 
     @staticmethod
     def filter_studies(api_response: Dict[str, Any]) -> List[Dict[str, Any]]:
         filtered_studies = []
-        
+
         for study in api_response.get("studies", []):
             filtered_study = {}
-            
-            identification = study.get("protocolSection", {}).get("identificationModule", {})
-            title = identification.get("briefTitle") or identification.get("officialTitle") or "N/A"
+            protocol_section = study.get("protocolSection", {})
+            identification_module = protocol_section.get("identificationModule", {})
+            description_module = protocol_section.get("descriptionModule", {})
+            arms_interventions_module = protocol_section.get("armsInterventionsModule", {})
+            sponsors_collaborators_module = protocol_section.get("sponsorsCollaboratorsModule", {})
+            contacts_locations_module = protocol_section.get("contactsLocationsModule", {})
+            conditions_module = protocol_section.get("conditionsModule", {})
+            eligibility_module = protocol_section.get("eligibilityModule", {})
+
+            title = identification_module.get("briefTitle") or identification_module.get("officialTitle") or "N/A"
             filtered_study["Title"] = title
 
-            description = study.get("protocolSection", {}).get("descriptionModule", {})
-            brief_summary = description.get("briefSummary", "")
-            detailed_description = description.get("detailedDescription", "")
-            if brief_summary and detailed_description:
-                full_description = f"{brief_summary}\n\n{detailed_description}"
-            elif brief_summary:
-                full_description = brief_summary
-            elif detailed_description:
-                full_description = detailed_description
-            else:
-                full_description = "N/A"
-            filtered_study["Description"] = full_description.strip()
-            
-            interventions_module = study.get("protocolSection", {}).get("armsInterventionsModule", {})
-            interventions = interventions_module.get("interventions", [])
-            intervention_names = [interv.get("name", "N/A") for interv in interventions]
-            filtered_study["Intervention"] = intervention_names if intervention_names else ["N/A"]
+            brief_summary = description_module.get("briefSummary", "")
+            detailed_description = description_module.get("detailedDescription", "")
+            full_description = "\n\n".join(filter(None, [brief_summary, detailed_description])).strip() or "N/A"
+            filtered_study["Description"] = full_description
 
-            sponsor = study.get("protocolSection", {}).get("sponsorsCollaboratorsModule", {}).get("leadSponsor", {}).get("name", "N/A")
+            interventions = arms_interventions_module.get("interventions", [])
+            intervention_names = [interv.get("name", "N/A") for interv in interventions] or ["N/A"]
+            filtered_study["Intervention"] = intervention_names
 
-            keywords = study.get("protocolSection", {}).get("conditionsModule", {}).get("keywords", [])
+            sponsor = sponsors_collaborators_module.get("leadSponsor", {}).get("name", "N/A")
+            filtered_study["Sponsor"] = sponsor
 
-            officials = study.get("protocolSection", {}).get("contactsLocationsModule", {}).get("centralContacts", [])
+            keywords = conditions_module.get("keywords", []) or ["N/A"]
+            filtered_study["Keywords"] = keywords
 
-            filtered_study["contacts"] = officials if officials else ["N/A"]
-            
-            locations = study.get("protocolSection", {}).get("contactsLocationsModule", {}).get("locations", [])
+            contacts = contacts_locations_module.get("centralContacts", []) or ["N/A"]
+            filtered_study["Contacts"] = contacts
+
+            locations = contacts_locations_module.get("locations", [])
             location_info = []
             for loc in locations:
                 facility = loc.get("facility", "N/A")
                 city = loc.get("city", "N/A")
                 state = loc.get("state", "N/A")
                 country = loc.get("country", "N/A")
-                location_str = f"{facility}, {city}, {state}, {country}"
+                status = loc.get("status", "N/A")
                 location_info.append({
                     "Facility": facility,
                     "City": city,
                     "State": state,
                     "Country": country,
-                    "status": loc.get("status", "N/A")
+                    "Status": status
                 })
+            filtered_study["Location"] = location_info or ["N/A"]
 
+            conditions = conditions_module.get("conditions", []) or ["N/A"]
+            filtered_study["Conditions"] = conditions
 
-            filtered_study["Location"] = location_info if location_info else ["N/A"]
-            
-            conditions_module = study.get("protocolSection", {}).get("conditionsModule", {})
-            conditions = conditions_module.get("conditions", [])
-            filtered_study["Conditions"] = conditions if conditions else ["N/A"]
+            restrictions = eligibility_module.get("eligibilityCriteria", "N/A").strip()
+            filtered_study["Restrictions"] = restrictions
 
-            filtered_study["Sponsor"] = sponsor if sponsor else "N/A"
-
-            filtered_study["Keywords"] = keywords if keywords else ["N/A"]
-            
-            eligibility_module = study.get("protocolSection", {}).get("eligibilityModule", {})
-            study_type = eligibility_module.get("studyType", "N/A")
-            study_phase = eligibility_module.get("phase", "N/A")
-            min_age = eligibility_module.get("minimumAge", "N/A")
-            # filtered_study["Age"] = age
-            
-            restrictions = eligibility_module.get("eligibilityCriteria", "N/A")
-            filtered_study["Restrictions"] = restrictions.strip()
-            
-            # Se tem resultados publicados
             has_results = study.get("hasResults", False)
             filtered_study["Has Results Published"] = has_results
-            
+
             filtered_studies.append(filtered_study)
-        
+
         return filtered_studies
 
-    @staticmethod
-    def search_paciente(search_data: PacienteSearch, fields: Optional[List[str]] = None, page_size: int = 10) -> List[Dict[str, Any]]:
-        search_url = SearchService.BASE_URL
-
+    def search_paciente(
+        self,
+        search_data: PacienteSearch,
+        fields: Optional[List[str]] = None,
+        page_size: int = 3,
+        page: int = 1
+    ) -> List[Dict[str, Any]]:
+        search_url = self.BASE_URL
         params = {
             "format": "json",
             "pageSize": page_size
         }
 
-        data_dict = search_data.dict(
-            exclude_none=True,
-            exclude_unset=True,
-            by_alias=True
-        )
+        data_dict = search_data.dict(exclude_none=True, exclude_unset=True, by_alias=True)
         current_app.logger.info(f"Search data: {data_dict}")
+
         if 'age' in data_dict and data_dict['age']:
             age_value = data_dict.pop('age')
             age_expr = f"AREA[MinimumAge]RANGE[MIN, {age_value}] AND AREA[MaximumAge]RANGE[{age_value}, MAX]"
@@ -117,35 +103,61 @@ class SearchService:
             else:
                 params[key] = value
 
-        if fields is not None:
+        if fields:
             params['fields'] = ",".join(fields)
 
-        current_app.logger.info(f"Final Params: {params}")
+        current_app.logger.info(f"Initial Params: {params}")
 
-        response = requests.get(search_url, params=params)
+        next_page_token = None
+        current_page = 1
+        while current_page <= page:
+            if next_page_token:
+                params['pageToken'] = next_page_token
 
-        if response.status_code == 200:
+            response = requests.get(search_url, params=params)
+            if response.status_code != 200:
+                self.handle_api_error(response)
+
             api_response = response.json()
-            filtered_response = SearchService.filter_studies(api_response)
-            if search_data.location is None:
-                return filtered_response
-                
-            filter_city = search_data.location.split(",")[0]
-            filtered_per_location = []
-            for study in filtered_response:
-                for location in study["Location"]:
-                    if filter_city.lower() in location["City"].lower():
-                        study["Location"] = location
-                        filtered_per_location.append(study)
-                        break
 
-            return filtered_per_location
-        else:
-            try:
-                error_details = response.json()
-            except ValueError:
-                error_details = response.text
-            raise requests.exceptions.HTTPError(
-                f"{response.status_code} Client Error: {response.reason} for url: {response.url}\nDetails: {error_details}",
-                response=response
-            )
+            if current_page == page:
+                filtered_response = self.filter_studies(api_response)
+
+                if search_data.location:
+                    filtered_response = self.filter_by_location(filtered_response, search_data.location)
+
+                self.translate_service.translate_fields(filtered_response)
+
+                return filtered_response
+
+            next_page_token = api_response.get('nextPageToken')
+            if not next_page_token:
+                break
+
+            current_page += 1
+
+        return []
+
+    def filter_by_location(self, studies: List[Dict[str, Any]], location: str) -> List[Dict[str, Any]]:
+        filter_city = location.split(",")[0].strip().lower()
+        filtered_studies = []
+
+        for study in studies:
+            for loc in study["Location"]:
+                if isinstance(loc, dict) and filter_city in loc.get("City", "").lower():
+                    study["Location"] = [loc] 
+                    filtered_studies.append(study)
+                    break
+
+        return filtered_studies
+
+    @staticmethod
+    def handle_api_error(response: requests.Response):
+        try:
+            error_details = response.json()
+        except ValueError:
+            error_details = response.text
+        raise requests.exceptions.HTTPError(
+            f"{response.status_code} Client Error: {response.reason} for url: {response.url}\nDetails: {error_details}",
+            response=response
+        )

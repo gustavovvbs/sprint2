@@ -1,14 +1,21 @@
 import os
+import json
 from operator import itemgetter 
 from dotenv import load_dotenv
 from google.cloud import translate_v2 as translate 
+from google.oauth2 import service_account
 
 load_dotenv()
 
 
 class TranslateService:
     def __init__(self):
-        self.translator = translate.Client()
+        if os.getenv("GOOGLE_CREDENTIALS"):
+            credentials_info = json.loads(os.getenv("GOOGLE_CREDENTIALS"))
+            credentials = service_account.Credentials.from_service_account_info(credentials_info)
+            self.translator = translate.Client(credentials=credentials)
+        else:
+            self.translator = translate.Client()
 
     def translate_fields(self, data, target_language='pt'):
         strings_to_translate = []

@@ -38,10 +38,15 @@ class SearchService:
             interventions = interventions_module.get("interventions", [])
             intervention_names = [interv.get("name", "N/A") for interv in interventions]
             filtered_study["Intervention"] = intervention_names if intervention_names else ["N/A"]
-            
-            officials = study.get("protocolSection", {}).get("contactsLocationsModule", {}).get("overallOfficials", [])
-            people_involved = [official.get("name", "N/A") for official in officials]
-            filtered_study["People Involved"] = people_involved if people_involved else ["N/A"]
+
+            sponsor = study.get("protocolSection", {}).get("sponsorsCollaboratorsModule", {}).get("leadSponsor", {}).get("name", "N/A")
+
+            keywords = study.get("protocolSection", {}).get("conditionsModule", {}).get("keywords", [])
+
+            officials = study.get("protocolSection", {}).get("contactsLocationsModule", {}).get("centralContacts", [])
+
+
+            filtered_study["contacts"] = officials if officials else ["N/A"]
             
             locations = study.get("protocolSection", {}).get("contactsLocationsModule", {}).get("locations", [])
             location_info = []
@@ -65,6 +70,10 @@ class SearchService:
             conditions_module = study.get("protocolSection", {}).get("conditionsModule", {})
             conditions = conditions_module.get("conditions", [])
             filtered_study["Conditions"] = conditions if conditions else ["N/A"]
+
+            filtered_study["Sponsor"] = sponsor if sponsor else "N/A"
+
+            filtered_study["Keywords"] = keywords if keywords else ["N/A"]
             
             eligibility_module = study.get("protocolSection", {}).get("eligibilityModule", {})
             study_type = eligibility_module.get("studyType", "N/A")

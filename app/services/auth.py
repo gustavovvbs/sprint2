@@ -15,14 +15,14 @@ class AuthService:
         self.SECRET_KEY = os.getenv("SECRET_KEY")
 
     def register(self, user_data: UserCreateSchema):
-        existing_user = self.db.users.find_one({"email": user_data.email})
+        existing_user = self.db.users.find_one({"email": user_data["email"]})
         if existing_user:
             raise ValueError("User with this email already exists")
 
         hashed_password = hash_password(user_data.password)
         user = UserModel(
-            username=user_data.username,
-            email=user_data.email,
+            username=user_data["username"],
+            email=user_data["email"],
             hashed_password=hashed_password,
         )
 

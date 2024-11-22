@@ -125,6 +125,12 @@ class SearchService:
 
                 if search_data.location:
                     filtered_response = self.filter_by_location(filtered_response, search_data.location)
+                    # places can have different statuses compared to the overall, so i filter them here
+                    for study in filtered_response:
+                        if study["Location"][0]["Status"] == search_data.status:
+                            continue 
+                        else:
+                            filtered_response.remove(study)
 
                 self.translate_service.translate_fields(filtered_response)
 
